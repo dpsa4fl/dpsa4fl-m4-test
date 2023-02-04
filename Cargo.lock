@@ -726,7 +726,7 @@ dependencies = [
 [[package]]
 name = "dpsa4fl"
 version = "0.1.0"
-source = "git+https://github.com/dpsa-project/dpsa4fl?branch=dpsa-m4-main#8257bd32e77a2f8a57e3c10c9c54d7b7976c3863"
+source = "git+https://github.com/dpsa-project/dpsa4fl?branch=dpsa-m4-main#f06bccfca00a1d810b58eb9b5bf09249be8f2273"
 dependencies = [
  "anyhow",
  "async-std",
@@ -1162,6 +1162,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "hermit-abi"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "856b5cb0902c2b6d65d5fd97dfa30f9b70c7538e770b98eab5ed52d8db923e01"
+
+[[package]]
 name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1426,14 +1432,14 @@ checksum = "30e22bd8629359895450b59ea7a776c850561b96a3b1d31321c1949d9e6c9146"
 
 [[package]]
 name = "is-terminal"
-version = "0.4.2"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "28dfb6c8100ccc63462345b67d1bbc3679177c75ee4bf59bf29c8b1d110b8189"
+checksum = "22e18b0a45d56fe973d6db23972bf5bc46f988a4a2385deac9cc29572f09daef"
 dependencies = [
- "hermit-abi 0.2.6",
+ "hermit-abi 0.3.0",
  "io-lifetimes",
  "rustix",
- "windows-sys 0.42.0",
+ "windows-sys 0.45.0",
 ]
 
 [[package]]
@@ -1454,7 +1460,7 @@ checksum = "fad582f4b9e86b6caa621cabeb0963332d92eea04729ab12892c2533951e6440"
 [[package]]
 name = "janus_aggregator"
 version = "0.3.0"
-source = "git+https://github.com/dpsa-project/janus.git?branch=dpsa-m4-main#97bcd86cb95913186ab73b6335d25486a34d6077"
+source = "git+https://github.com/dpsa-project/janus.git?branch=dpsa-m4-main#273e3d203c3ff5c86fb84704486f014d50e5794b"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1505,7 +1511,7 @@ dependencies = [
 [[package]]
 name = "janus_client"
 version = "0.3.0"
-source = "git+https://github.com/dpsa-project/janus.git?branch=dpsa-m4-main#97bcd86cb95913186ab73b6335d25486a34d6077"
+source = "git+https://github.com/dpsa-project/janus.git?branch=dpsa-m4-main#273e3d203c3ff5c86fb84704486f014d50e5794b"
 dependencies = [
  "backoff",
  "derivative",
@@ -1525,7 +1531,7 @@ dependencies = [
 [[package]]
 name = "janus_collector"
 version = "0.3.0"
-source = "git+https://github.com/dpsa-project/janus.git?branch=dpsa-m4-main#97bcd86cb95913186ab73b6335d25486a34d6077"
+source = "git+https://github.com/dpsa-project/janus.git?branch=dpsa-m4-main#273e3d203c3ff5c86fb84704486f014d50e5794b"
 dependencies = [
  "backoff",
  "base64 0.21.0",
@@ -1547,7 +1553,7 @@ dependencies = [
 [[package]]
 name = "janus_core"
 version = "0.3.0"
-source = "git+https://github.com/dpsa-project/janus.git?branch=dpsa-m4-main#97bcd86cb95913186ab73b6335d25486a34d6077"
+source = "git+https://github.com/dpsa-project/janus.git?branch=dpsa-m4-main#273e3d203c3ff5c86fb84704486f014d50e5794b"
 dependencies = [
  "backoff",
  "base64 0.21.0",
@@ -1571,7 +1577,7 @@ dependencies = [
 [[package]]
 name = "janus_messages"
 version = "0.3.0"
-source = "git+https://github.com/dpsa-project/janus.git?branch=dpsa-m4-main#97bcd86cb95913186ab73b6335d25486a34d6077"
+source = "git+https://github.com/dpsa-project/janus.git?branch=dpsa-m4-main#273e3d203c3ff5c86fb84704486f014d50e5794b"
 dependencies = [
  "anyhow",
  "base64 0.21.0",
@@ -2309,7 +2315,7 @@ checksum = "5b40af805b3121feab8a3c29f04d8ad262fa8e0561883e7653e024ae4479e6de"
 [[package]]
 name = "prio"
 version = "0.10.0"
-source = "git+https://github.com/dpsa-project/libprio-rs.git?branch=feature-simple-dp#66710dbb3a6ff8beb828b7a36027dccc0b14b6cd"
+source = "git+https://github.com/dpsa-project/libprio-rs.git?branch=feature-simple-dp#93ba05d98e93be954d7eb40ccdc2dd82dab8bce7"
 dependencies = [
  "aes",
  "base64 0.21.0",
@@ -2588,16 +2594,16 @@ dependencies = [
 
 [[package]]
 name = "rustix"
-version = "0.36.7"
+version = "0.36.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4fdebc4b395b7fbb9ab11e462e20ed9051e7b16e42d24042c776eca0ac81b03"
+checksum = "f43abb88211988493c1abb44a70efa56ff0ce98f233b7b276146f1f3f7ba9644"
 dependencies = [
  "bitflags",
  "errno",
  "io-lifetimes",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.42.0",
+ "windows-sys 0.45.0",
 ]
 
 [[package]]

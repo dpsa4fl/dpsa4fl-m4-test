@@ -21,7 +21,7 @@ async fn main() -> Result<()> {
     let p = CommonState_Parametrization {
         location,
         gradient_len: 3,
-        noise_parameter: 100,
+        noise_parameter: (100,1),
     };
     let istate = api__new_controller_state(p.clone());
     let mut mstate = ControllerState_Mut {
