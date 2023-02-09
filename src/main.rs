@@ -21,7 +21,7 @@ async fn main() -> Result<()> {
     let p = CommonState_Parametrization {
         location,
         gradient_len: 3,
-        noise_parameter: (100,1),
+        noise_parameter: (10000,1),
     };
     let istate = api__new_controller_state(p.clone());
     let mut mstate = ControllerState_Mut {
@@ -35,6 +35,7 @@ async fn main() -> Result<()> {
         let round_settings : RoundSettings = RoundSettings::new(task_id)?;
         let f = fixed!(0.0625: I1F31);
         let data = vec![f, f, f];
+        println!("submitting vector: {data:?}");
 
         let mut state = api__new_client_state(p.clone());
         api__submit(&mut state, round_settings, &data).await?;
