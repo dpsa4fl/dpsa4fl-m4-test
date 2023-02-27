@@ -19,6 +19,7 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
+// Struct wrapper for convenient debug printing.
 struct PrintShortVec<'a, A>(&'a Vec<A>);
 
 impl<'a, A : std::fmt::Debug + Clone> std::fmt::Display for PrintShortVec<'a, A> {
