@@ -19,6 +19,16 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
+struct PrintShortVec<'a, A>(&'a Vec<A>);
+
+impl<'a, A : std::fmt::Debug + Clone> std::fmt::Display for PrintShortVec<'a, A> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let sub_size = core::cmp::min(self.0.len(), 15); // don't print the whole vector if it is too long
+        write!(f, "{:?}", (self.0)[0..sub_size].to_vec())
+    }
+}
+
+
 // run the full aggregation pipeline with gradient vectors
 // of length `gradient_len`, filled with elements `value`.
 async fn run_aggregation(gradient_len: usize, value: I1F31) -> Result<()> {
@@ -51,7 +61,7 @@ async fn run_aggregation(gradient_len: usize, value: I1F31) -> Result<()> {
     async fn submit_gradient(task_id: String, p: CommonState_Parametrization, gradient_len: usize, value: I1F31) -> Result<()> {
         let round_settings : RoundSettings = RoundSettings::new(task_id)?;
         let data = vec![value; gradient_len];
-        println!("submitting vector: {data:?}");
+        println!("submitting vector: {}", PrintShortVec(&data));
 
         let mut state = api__new_client_state(p.clone());
         api__submit(&mut state, round_settings, &data).await?;
@@ -70,7 +80,7 @@ async fn run_aggregation(gradient_len: usize, value: I1F31) -> Result<()> {
     let res = api__collect(&istate,&mut mstate).await?;
     let val = res.aggregate_result();
     let sub_size = core::cmp::min(val.len(), 15); // don't print the whole vector if it is too long
-    println!("got result, it is:\n{:?}", val[0..15].to_vec());
+    println!("got result, it is:\n{}", PrintShortVec(val));
 
     // Done
     Ok(())
