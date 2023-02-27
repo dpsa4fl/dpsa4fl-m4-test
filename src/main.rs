@@ -2,13 +2,29 @@
 
 use dpsa4fl::{controller::*, core::{CommonState_Parametrization, Locations}, client::{api__new_client_state, api__submit, RoundSettings}};
 use fixed_macro::fixed;
+use fixed::types::I1F31;
 use url::Url;
 use anyhow::Result;
 
+
 #[tokio::main]
 async fn main() -> Result<()> {
-    println!("Creating controller");
+    println!("Submitting gradient with 3 elements.");
+    run_aggregation(3, fixed!(0.0625: I1F31)).await?;
+    println!("\n");
 
+    println!("Submitting gradient with 60000 elements.");
+    run_aggregation(60000, fixed!(0.0: I1F31)).await?;
+
+    Ok(())
+}
+
+// run the full aggregation pipeline with gradient vectors
+// of length `gradient_len`, filled with elements `value`.
+async fn run_aggregation(gradient_len: usize, value: I1F31) -> Result<()> {
+
+    // Create controller and prepare aggregation.
+    println!("Creating controller");
     let location = Locations {
             internal_leader: Url::parse("http://aggregator1:9991")?,
             internal_helper: Url::parse("http://aggregator2:9992")?,
@@ -20,7 +36,7 @@ async fn main() -> Result<()> {
 
     let p = CommonState_Parametrization {
         location,
-        gradient_len: 3,
+        gradient_len,
         noise_parameter: (10000,1),
     };
     let istate = api__new_controller_state(p.clone());
@@ -31,10 +47,10 @@ async fn main() -> Result<()> {
     let task_id = api__start_round(&istate,&mut mstate).await?;
     println!("started round with task id {task_id}");
 
-    async fn submit_gradient(task_id: String, p: CommonState_Parametrization) -> Result<()> {
+    // Submitting a gradient, has to be done by each client
+    async fn submit_gradient(task_id: String, p: CommonState_Parametrization, gradient_len: usize, value: I1F31) -> Result<()> {
         let round_settings : RoundSettings = RoundSettings::new(task_id)?;
-        let f = fixed!(0.0625: I1F31);
-        let data = vec![f, f, f];
+        let data = vec![value; gradient_len];
         println!("submitting vector: {data:?}");
 
         let mut state = api__new_client_state(p.clone());
@@ -43,18 +59,20 @@ async fn main() -> Result<()> {
         Ok(())
     }
 
+    // Call the submission function
     println!("submitting gradient 1");
-    submit_gradient(task_id.clone(), p.clone()).await?;
+    submit_gradient(task_id.clone(), p.clone(), gradient_len, value).await?;
     println!("submitting gradient 2");
-    submit_gradient(task_id.clone(), p.clone()).await?;
+    submit_gradient(task_id.clone(), p.clone(), gradient_len, value).await?;
 
-
-    // wait for result
+    // Wait for janus to aggregate, and get result
     println!("collecting");
     let res = api__collect(&istate,&mut mstate).await?;
     let val = res.aggregate_result();
-    println!("got result, it is:\n{val:?}");
+    let sub_size = core::cmp::min(val.len(), 15); // don't print the whole vector if it is too long
+    println!("got result, it is:\n{:?}", val[0..15].to_vec());
 
+    // Done
     Ok(())
 }
 
