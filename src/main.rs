@@ -1,22 +1,42 @@
 
 
-use dpsa4fl::{controller::*, core::{CommonState_Parametrization, Locations}, client::{api__new_client_state, api__submit, RoundSettings}};
+use dpsa4fl::{core::{types::{Locations, MainLocations, ManagerLocations, CommonStateParametrization, VdafParameter}, fixed::{VecFixedAny, FixedTypeTag}}, controller::interface::{embedded::{api_new_controller_state, api_create_session, api_start_round, api_collect}, types::{ControllerStateMut, ControllerStateRound}}, client::interface::{types::RoundSettings, embedded::{api_new_client_state, api_submit_with}}};
+// use dpsa4fl::{controller::*, core::{CommonState_Parametrization, Locations}, client::{api__new_client_state, api__submit, RoundSettings}};
 use fixed_macro::fixed;
-use fixed::types::I1F31;
+use fixed::{types::{I1F31, I1F15}, traits::Fixed};
 use url::Url;
 use anyhow::Result;
+use prio::{dp::Rational, vdaf::{self, prio3::{self, Prio3}}, flp::{types::fixedpoint_l2::FixedPointBoundedL2VecSum, Type, gadgets::{ParallelSum, PolyEval, BlindPolyEval}}, field::Field128};
 
+type Fx = I1F15;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    println!("Submitting gradient with 3 elements.");
-    run_aggregation(3, fixed!(0.0625: I1F31)).await?;
-    println!("\n");
 
-    println!("Submitting gradient with 60000 elements.");
-    run_aggregation(60000, fixed!(0.0: I1F31)).await?;
+    let n = 1<<15;
+    println!("Submitting gradient with {n} elements.");
+    run_aggregation(n, fixed!(0.0: I1F15)).await?;
+    // for i in 10..18 {
+    //     let size = get_size(1 << i);
+    //     let encoded_bytes = size*(128/8);
+    //     let kib = encoded_bytes / 1024;
+    //     println!("2^{i} => {size} entries => {encoded_bytes} bytes => {kib} kib");
+    // }
 
     Ok(())
+}
+
+fn get_size(length: usize) -> usize
+{
+    let typ :
+    FixedPointBoundedL2VecSum<
+            Fx,
+        ParallelSum<Field128, PolyEval<Field128>>,
+        ParallelSum<Field128, BlindPolyEval<Field128>>,
+        >
+    = FixedPointBoundedL2VecSum::new(length).unwrap();
+
+    typ.input_len() + typ.proof_len()
 }
 
 // Struct wrapper for convenient debug printing.
@@ -32,53 +52,78 @@ impl<'a, A : std::fmt::Debug + Clone> std::fmt::Display for PrintShortVec<'a, A>
 
 // run the full aggregation pipeline with gradient vectors
 // of length `gradient_len`, filled with elements `value`.
-async fn run_aggregation(gradient_len: usize, value: I1F31) -> Result<()> {
+async fn run_aggregation(gradient_len: usize, value: Fx) -> Result<()> {
 
     // Create controller and prepare aggregation.
     println!("Creating controller");
     let location = Locations {
-            internal_leader: Url::parse("http://aggregator1:9991")?,
-            internal_helper: Url::parse("http://aggregator2:9992")?,
-            external_leader_tasks: Url::parse("http://127.0.0.1:9981")?,
-            external_helper_tasks: Url::parse("http://127.0.0.1:9982")?,
-            external_leader_main: Url::parse("http://127.0.0.1:9991")?,
-            external_helper_main: Url::parse("http://127.0.0.1:9992")?,
+            // internal_leader: Url::parse("http://aggregator1:9991")?,
+            // internal_helper: Url::parse("http://aggregator2:9992")?,
+            // external_leader_tasks: Url::parse("http://127.0.0.1:9981")?,
+            // external_helper_tasks: Url::parse("http://127.0.0.1:9982")?,
+            // external_leader_main: Url::parse("http://127.0.0.1:9991")?,
+            // external_helper_main: Url::parse("http://127.0.0.1:9992")?,
+        main: MainLocations
+        {
+            external_leader: Url::parse("http://127.0.0.1:9991")?,
+            external_helper: Url::parse("http://127.0.0.1:9992")?
+        },
+        manager: ManagerLocations
+        {
+            external_leader: Url::parse("http://127.0.0.1:9981")?,
+            external_helper: Url::parse("http://127.0.0.1:9982")?,
+        },
     };
 
-    let p = CommonState_Parametrization {
+    let p = CommonStateParametrization {
         location,
-        gradient_len,
-        noise_parameter: (10000,1),
+        // gradient_len,
+        // noise_parameter: (10000,1),
+        vdaf_parameter: VdafParameter {
+            gradient_len,
+            privacy_parameter: Rational::try_from(100.0f32)?,
+            submission_type: FixedTypeTag::FixedType16Bit,
+        },
     };
-    let istate = api__new_controller_state(p.clone());
-    let mut mstate = ControllerState_Mut {
-        round: ControllerState_Round { task_id: None, training_session_id: None }
+    let istate = api_new_controller_state(p.clone());
+    let mut mstate = ControllerStateMut {
+        round: ControllerStateRound { task_id: None, training_session_id: None }
     };
-    api__create_session(&istate, &mut mstate).await?;
-    let task_id = api__start_round(&istate,&mut mstate).await?;
+    api_create_session(&istate, &mut mstate).await?;
+    let task_id = api_start_round(&istate,&mut mstate).await?;
     println!("started round with task id {task_id}");
 
     // Submitting a gradient, has to be done by each client
-    async fn submit_gradient(task_id: String, p: CommonState_Parametrization, gradient_len: usize, value: I1F31) -> Result<()> {
+    async fn submit_gradient(task_id: String, p: CommonStateParametrization, gradient_len: usize, value: Fx) -> Result<()>
+        where Fx : Clone + std::fmt::Debug
+    {
         let round_settings : RoundSettings = RoundSettings::new(task_id)?;
         let data = vec![value; gradient_len];
         println!("submitting vector: {}", PrintShortVec(&data));
 
-        let mut state = api__new_client_state(p.clone());
-        api__submit(&mut state, round_settings, &data).await?;
-
+        let mut state = api_new_client_state(p.location.manager);
+        api_submit_with(&mut state, round_settings, |x| VecFixedAny::VecFixed16(data)).await?;
         Ok(())
     }
+
+    println!("press enter to send.");
+    let mut line = String::new();
+    std::io::stdin().read_line(&mut line).unwrap();
 
     // Call the submission function
     println!("submitting gradient 1");
     submit_gradient(task_id.clone(), p.clone(), gradient_len, value).await?;
+    println!("submission finished");
+
+    std::io::stdin().read_line(&mut line).unwrap();
+
+    println!("press enter to continue.");
     println!("submitting gradient 2");
     submit_gradient(task_id.clone(), p.clone(), gradient_len, value).await?;
 
     // Wait for janus to aggregate, and get result
     println!("collecting");
-    let res = api__collect(&istate,&mut mstate).await?;
+    let res = api_collect(&istate,&mut mstate).await?;
     let val = res.aggregate_result();
     let sub_size = core::cmp::min(val.len(), 15); // don't print the whole vector if it is too long
     println!("got result, it is:\n{}", PrintShortVec(val));
