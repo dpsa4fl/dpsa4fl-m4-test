@@ -3,19 +3,31 @@
 use dpsa4fl::{core::{types::{Locations, MainLocations, ManagerLocations, CommonStateParametrization, VdafParameter}, fixed::{VecFixedAny, FixedTypeTag}}, controller::interface::{embedded::{api_new_controller_state, api_create_session, api_start_round, api_collect}, types::{ControllerStateMut, ControllerStateRound}}, client::interface::{types::RoundSettings, embedded::{api_new_client_state, api_submit_with}}};
 // use dpsa4fl::{controller::*, core::{CommonState_Parametrization, Locations}, client::{api__new_client_state, api__submit, RoundSettings}};
 use fixed_macro::fixed;
-use fixed::{types::{I1F31, I1F15}, traits::Fixed};
+use fixed::{types::{I1F31, I1F15, I1F63}, traits::Fixed};
 use url::Url;
 use anyhow::Result;
-use prio::{dp::Rational, vdaf::{self, prio3::{self, Prio3}}, flp::{types::fixedpoint_l2::FixedPointBoundedL2VecSum, Type, gadgets::{ParallelSum, PolyEval, BlindPolyEval}}, field::Field128};
+use prio::{dp::Rational, vdaf::{self, prio3::{self, Prio3}}, flp::{types::fixedpoint_l2::FixedPointBoundedL2VecSum, Type, gadgets::{ParallelSum, PolyEval, Mul}}, field::Field128};
+use prio::dp::ZCdpBudget;
 
 type Fx = I1F15;
 
 #[tokio::main]
 async fn main() -> Result<()> {
 
-    let n = 1<<15;
+    ////////////////////////////////////////////////////////
+    // testing small vectors
+    // let n = 1;
+    // println!("Submitting gradient with {n} elements.");
+    // run_aggregation(n, fixed!(0.9: I1F15)).await?;
+
+    ////////////////////////////////////////////////////////
+    // testing large vectors
+    let n = 1<<11;
     println!("Submitting gradient with {n} elements.");
     run_aggregation(n, fixed!(0.0: I1F15)).await?;
+
+
+    ////////////////////////////////////////////////////////
     // for i in 10..18 {
     //     let size = get_size(1 << i);
     //     let encoded_bytes = size*(128/8);
@@ -32,7 +44,7 @@ fn get_size(length: usize) -> usize
     FixedPointBoundedL2VecSum<
             Fx,
         ParallelSum<Field128, PolyEval<Field128>>,
-        ParallelSum<Field128, BlindPolyEval<Field128>>,
+        ParallelSum<Field128, Mul<Field128>>,
         >
     = FixedPointBoundedL2VecSum::new(length).unwrap();
 
@@ -81,7 +93,7 @@ async fn run_aggregation(gradient_len: usize, value: Fx) -> Result<()> {
         // noise_parameter: (10000,1),
         vdaf_parameter: VdafParameter {
             gradient_len,
-            privacy_parameter: Rational::try_from(100.0f32)?,
+            privacy_parameter: ZCdpBudget::new(Rational::try_from(100.0f32)?),
             submission_type: FixedTypeTag::FixedType16Bit,
         },
     };
@@ -115,18 +127,34 @@ async fn run_aggregation(gradient_len: usize, value: Fx) -> Result<()> {
     submit_gradient(task_id.clone(), p.clone(), gradient_len, value).await?;
     println!("submission finished");
 
+    println!("press enter to continue.");
+
     std::io::stdin().read_line(&mut line).unwrap();
 
-    println!("press enter to continue.");
     println!("submitting gradient 2");
     submit_gradient(task_id.clone(), p.clone(), gradient_len, value).await?;
+
+    // println!("press enter to continue.");
+
+    //           std::io::stdin().read_line(&mut line).unwrap();
+
+    // println!("submitting gradient 3");
+    // submit_gradient(task_id.clone(), p.clone(), gradient_len, value).await?;
+
+    // println!("press enter to continue.");
+
+    //           std::io::stdin().read_line(&mut line).unwrap();
+
+    // println!("submitting gradient 4");
+    // submit_gradient(task_id.clone(), p.clone(), gradient_len, value).await?;
 
     // Wait for janus to aggregate, and get result
     println!("collecting");
     let res = api_collect(&istate,&mut mstate).await?;
     let val = res.aggregate_result();
-    let sub_size = core::cmp::min(val.len(), 15); // don't print the whole vector if it is too long
+    // let sub_size = core::cmp::min(val.len(), 15); // don't print the whole vector if it is too long
     println!("got result, it is:\n{}", PrintShortVec(val));
+    // println!("got result, it is:\n{:?}", val);
 
     // Done
     Ok(())
