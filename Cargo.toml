@@ -11,8 +11,8 @@ tokio = { version = "1.22", features = ["time"] }
 dpsa4fl = { git = "https://github.com/dpsa4fl/dpsa4fl", branch = "main" }
 url = { version = "2.3.1" }
 anyhow = "1.0"
-# # prio = { version = "0.10.0", features = ["multithreaded"] }
-prio = {git = "https://github.com/dpsa4fl/libprio-rs.git", branch ="dp-update-for-janus-rebased", features = ["multithreaded", "experimental"]}
+prio = { version = "0.15.2", features = ["experimental", "multithreaded"] }
+# prio = {git = "https://github.com/dpsa4fl/libprio-rs.git", branch ="dp-update-for-janus-rebased", features = ["multithreaded", "experimental"]}
 fixed = "1.19"
 fixed-macro = "1.1.1"
 # numpy = "0.17"

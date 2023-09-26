@@ -9,7 +9,7 @@ use anyhow::Result;
 use prio::{dp::Rational, vdaf::{self, prio3::{self, Prio3}}, flp::{types::fixedpoint_l2::FixedPointBoundedL2VecSum, Type, gadgets::{ParallelSum, PolyEval, Mul}}, field::Field128};
 use prio::dp::ZCdpBudget;
 
-type Fx = I1F15;
+type Fx = I1F31;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -22,9 +22,9 @@ async fn main() -> Result<()> {
 
     ////////////////////////////////////////////////////////
     // testing large vectors
-    let n = 1<<11;
+    let n = 1<<18;
     println!("Submitting gradient with {n} elements.");
-    run_aggregation(n, fixed!(0.0: I1F15)).await?;
+    run_aggregation(n, fixed!(0.0: I1F31)).await?;
 
 
     ////////////////////////////////////////////////////////
@@ -94,7 +94,7 @@ async fn run_aggregation(gradient_len: usize, value: Fx) -> Result<()> {
         vdaf_parameter: VdafParameter {
             gradient_len,
             privacy_parameter: ZCdpBudget::new(Rational::try_from(100.0f32)?),
-            submission_type: FixedTypeTag::FixedType16Bit,
+            submission_type: FixedTypeTag::FixedType32Bit,
         },
     };
     let istate = api_new_controller_state(p.clone());
@@ -114,7 +114,7 @@ async fn run_aggregation(gradient_len: usize, value: Fx) -> Result<()> {
         println!("submitting vector: {}", PrintShortVec(&data));
 
         let mut state = api_new_client_state(p.location.manager);
-        api_submit_with(&mut state, round_settings, |x| VecFixedAny::VecFixed16(data)).await?;
+        api_submit_with(&mut state, round_settings, |x| VecFixedAny::VecFixed32(data)).await?;
         Ok(())
     }
 
